@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Three.js Point Cloud with Auto Camera Adjustment</title>
+        <title>GPR</title>
         <style>
             body {
                 margin: 0;
@@ -62,14 +62,19 @@
                 <div class="slider-handle" id="upperHandle"></div>
             </div>
             <div class="bounds">
-                <span id="lowerBoundValue">25</span>
-                <span id="upperBoundValue">75</span>
+                <span id="lowerBoundValue">0</span>
+                <span>Intensity</span>
+                <span id="upperBoundValue">100</span>
             </div>
         </div>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/three@0.138.0/examples/js/loaders/PLYLoader.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/three@0.138.0/examples/js/controls/OrbitControls.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.19"></script>
+        <script type="importmap">
+            {
+                "imports": {
+                    "three": "./lib/three.module.min.js",
+                    "three/addons/": "./lib/jsm/"
+                }
+            }
+        </script>
         <script type="module" src="./main.js"></script>
     </body>
 </html>
