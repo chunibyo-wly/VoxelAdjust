@@ -37,4 +37,4 @@ sample_pcd, index = voxel_downsample_with_indices(pcd, 0.005)
 o3d.io.write_point_cloud(
     INPUT.replace(".ply", "_downsample.ply"), o3d.geometry.PointCloud(sample_pcd)
 )
-np.savetxt(INPUT.replace(".ply", "_downsample.txt"), intensity[index])
+np.savetxt(INPUT.replace(".ply", "_downsample.txt"), intensity[index],  fmt='%.6f')

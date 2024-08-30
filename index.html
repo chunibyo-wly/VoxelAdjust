@@ -3,10 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>
-            3D Gaussian Voxel Visualization with Surface Grid, Mouse Control,
-            and Slider
-        </title>
+        <title>Three.js Point Cloud with Auto Camera Adjustment</title>
         <style>
             body {
                 margin: 0;
@@ -14,191 +11,32 @@
             canvas {
                 display: block;
             }
-            #controls {
+
+            #slider-container {
                 position: absolute;
                 top: 10px;
                 left: 10px;
-                background-color: rgba(255, 255, 255, 0.8);
+                z-index: 100;
+                background: rgba(255, 255, 255, 0.8);
                 padding: 10px;
                 border-radius: 5px;
-                z-index: 100;
             }
         </style>
     </head>
     <body>
-        <div id="controls">
-            <label for="threshold"
-                >Voxel Threshold: <span id="thresholdValue">0.01</span></label
-            >
+        <div id="slider-container">
             <input
                 type="range"
-                id="threshold"
-                min="0.001"
-                max="0.1"
-                step="0.001"
-                value="0.01"
+                id="opacity-slider"
+                min="0"
+                max="1000"
+                value="1000",
+                step="1"
             />
         </div>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/controls/OrbitControls.js"></script>
-        <script>
-            // Scene setup
-            const scene = new THREE.Scene();
-            const camera = new THREE.PerspectiveCamera(
-                75,
-                window.innerWidth / window.innerHeight,
-                0.1,
-                1000
-            );
-            const renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            document.body.appendChild(renderer.domElement);
-
-            // OrbitControls for mouse control
-            const controls = new THREE.OrbitControls(
-                camera,
-                renderer.domElement
-            );
-            controls.enableDamping = true; // Smooth orbiting
-            controls.dampingFactor = 0.05;
-            controls.screenSpacePanning = false;
-            controls.minDistance = 10; // Minimum zoom distance
-            controls.maxDistance = 100; // Maximum zoom distance
-
-            // Gaussian function
-            function gaussian(x, y, z, sigma, mu) {
-                const exp = Math.exp;
-                const sqrt = Math.sqrt;
-                const pi = Math.PI;
-
-                const coeff = 1 / (sigma * sqrt(2 * pi));
-                const exponent =
-                    -(
-                        Math.pow(x - mu, 2) +
-                        Math.pow(y - mu, 2) +
-                        Math.pow(z - mu, 2)
-                    ) /
-                    (2 * sigma * sigma);
-
-                return coeff * exp(exponent);
-            }
-
-            // Voxel grid parameters
-            const gridSize = 20;
-            const voxelSize = 0.5;
-            const sigma = 3;
-            const mu = gridSize / 2;
-
-            // Geometry and material for instanced voxels
-            const geometry = new THREE.BoxGeometry(
-                voxelSize,
-                voxelSize,
-                voxelSize
-            );
-            const material = new THREE.MeshBasicMaterial({
-                transparent: true,
-            });
-
-            // Instanced mesh to handle multiple voxels
-            const instanceCount = gridSize * gridSize * gridSize;
-            const voxelMesh = new THREE.InstancedMesh(
-                geometry,
-                material,
-                instanceCount
-            );
-            scene.add(voxelMesh);
-
-            // Update voxel positions and colors based on the threshold
-            function updateVoxels(threshold) {
-                let instanceId = 0;
-                const dummy = new THREE.Object3D();
-                const color = new THREE.Color();
-
-                for (let x = 0; x < gridSize; x++) {
-                    for (let y = 0; y < gridSize; y++) {
-                        for (let z = 0; z < gridSize; z++) {
-                            const value = gaussian(x, y, z, sigma, mu);
-
-                            if (value > threshold) {
-                                dummy.position.set(
-                                    (x - gridSize / 2) * voxelSize,
-                                    (y - gridSize / 2) * voxelSize,
-                                    (z - gridSize / 2) * voxelSize
-                                );
-                                dummy.updateMatrix();
-
-                                voxelMesh.setMatrixAt(instanceId, dummy.matrix);
-
-                                color.setRGB(value, 0, 1 - value);
-                                material.color = color;
-                                material.opacity = 0.5;
-
-                                instanceId++;
-                            }
-                        }
-                    }
-                }
-                voxelMesh.count = instanceId; // Update the count of displayed instances
-                voxelMesh.instanceMatrix.needsUpdate = true;
-            }
-
-            // Initial voxel creation
-            updateVoxels(0.01);
-
-            const size = (gridSize - 1) * voxelSize; // Adjust size to fit exactly on the outer surface
-            const divisions = gridSize - 1; // Number of divisions to match the voxel grid
-
-            // Add grid helpers around the voxel structure
-            const grids = [];
-
-            // Add grid helper around the voxel structure
-            const gridHelper = new THREE.GridHelper(size, divisions);
-            gridHelper.position.set(0, (-gridSize * voxelSize) / 2, 0); // Position the grid helper below the voxel group
-            scene.add(gridHelper);
-
-            // Add a vertical grid helper for the Z-axis
-            const gridHelperZ = new THREE.GridHelper(size, divisions);
-            gridHelperZ.rotation.x = Math.PI / 2; // Rotate to make it vertical on the Z-axis
-            gridHelperZ.position.set(0, 0, (-gridSize * voxelSize) / 2); // Position the grid on the Z-axis
-            scene.add(gridHelperZ);
-
-            // Add a vertical grid helper for the X-axis
-            const gridHelperX = new THREE.GridHelper(size, divisions);
-            gridHelperX.rotation.z = Math.PI / 2; // Rotate to make it vertical on the X-axis
-            gridHelperX.position.set((-gridSize * voxelSize) / 2, 0, 0); // Position the grid on the X-axis
-            scene.add(gridHelperX);
-
-            // Camera position
-            camera.position.set(gridSize, gridSize, gridSize);
-            camera.lookAt(0, 0, 0);
-
-            // Handle slider input
-            const thresholdSlider = document.getElementById("threshold");
-            const thresholdValueDisplay =
-                document.getElementById("thresholdValue");
-            thresholdSlider.addEventListener("input", (event) => {
-                const threshold = parseFloat(event.target.value);
-                thresholdValueDisplay.textContent = threshold.toFixed(3);
-                updateVoxels(threshold); // Update voxel grid based on slider value
-            });
-
-            // Rendering loop
-            const animate = () => {
-                requestAnimationFrame(animate);
-                controls.update(); // Required if controls.enableDamping = true, or if controls.autoRotate = true
-                renderer.render(scene, camera);
-            };
-
-            animate();
-
-            // Handle window resize
-            window.addEventListener("resize", () => {
-                const width = window.innerWidth;
-                const height = window.innerHeight;
-                renderer.setSize(width, height);
-                camera.aspect = width / height;
-                camera.updateProjectionMatrix();
-            });
-        </script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.138.0/examples/js/loaders/PLYLoader.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.138.0/examples/js/controls/OrbitControls.js"></script>
+        <script type="module" src="/main.js"></script>
     </body>
 </html>
