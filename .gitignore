@@ -1,5 +1,1 @@
-data/*
-!data/01_column_downsample.ply
-!data/01_column_downsample.txt
-!data/02_ground_downsample.ply
-!data/02_ground_downsample.txt
+data/*.csv

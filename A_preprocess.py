@@ -46,30 +46,21 @@ def process_csv_to_ply(csv_filename, ply_filename):
     min_intensity = min(intensities)
     max_intensity = max(intensities)
 
-    with open(ply_filename, "w") as plyfile:
-        plyfile.write("ply\n")
-        plyfile.write("format ascii 1.0\n")
-        plyfile.write(f"element vertex {len(points)}\n")
-        plyfile.write("property float x\n")
-        plyfile.write("property float y\n")
-        plyfile.write("property float z\n")
-        plyfile.write("property uchar red\n")
-        plyfile.write("property uchar green\n")
-        plyfile.write("property uchar blue\n")
-        # plyfile.write("property float scarlar_intensity\n")
-        plyfile.write("end_header\n")
-        for (x, y, z), value in tqdm(zip(points, intensities), total=len(points)):
-            if min_intensity == max_intensity:
-                r, g, b = intensity_to_rgb(0.5)
-            else:
-                r, g, b = intensity_to_rgb(
-                    (value - min_intensity) / (max_intensity - min_intensity)
-                )
-            plyfile.write(f"{x} {y} {z} {r} {g} {b}\n")
-    with open(ply_filename.replace("ply", "txt"), "w") as plyfile:
-        for intensity in intensities:
-            plyfile.write(f"{intensity}\n")
+    points = np.array(points)
+    intensities = (
+        ((np.array(intensities) - min_intensity) / (max_intensity - min_intensity))
+        .reshape(-1, 1)
+        .repeat(3, axis=1)
+    )
+
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(points)
+    pcd.colors = o3d.utility.Vector3dVector(intensities)
+    o3d.io.write_point_cloud(
+        ply_filename, pcd.voxel_down_sample(voxel_size=0.005), write_ascii=False
+    )
 
 
 # Example usage:
+process_csv_to_ply("data/01_column.csv", "data/01_column.ply")
 process_csv_to_ply("data/02_ground.csv", "data/02_ground.ply")

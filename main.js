@@ -21,7 +21,7 @@ controls.screenSpacePanning = false;
 
 // Load the PLY file
 const loader = new THREE.PLYLoader();
-loader.load("./data/02_ground_downsample.ply", function (plyGeometry) {
+loader.load("./data/02_ground.ply", function (plyGeometry) {
 
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute(
