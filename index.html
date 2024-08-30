@@ -12,31 +12,64 @@
                 display: block;
             }
 
-            #slider-container {
+            .slider-container {
                 position: absolute;
-                top: 10px;
-                left: 10px;
-                z-index: 100;
-                background: rgba(255, 255, 255, 0.8);
-                padding: 10px;
+                bottom: 20px;
+                right: 20px;
+                width: 300px;
+                background-color: #f0f0f0;
+                padding: 20px;
+                border-radius: 10px;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            }
+            .slider-track {
+                width: 100%;
+                height: 15px;
+                background: linear-gradient(to right, blue, green, yellow, red);
                 border-radius: 5px;
+                position: relative;
+            }
+            .slider-handle {
+                width: 4px;
+                height: 25px;
+                background-color: white;
+                position: absolute;
+                top: -5px;
+                cursor: pointer;
+                z-index: 2;
+                box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+                border: 1px solid #999;
+            }
+            .bounds {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 20px;
+            }
+            .pale-overlay {
+                position: absolute;
+                height: 100%;
+                background-color: rgba(255, 255, 255, 0.7);
+                z-index: 1;
             }
         </style>
     </head>
     <body>
-        <div id="slider-container">
-            <input
-                type="range"
-                id="opacity-slider"
-                min="0"
-                max="1000"
-                value="1000",
-                step="1"
-            />
+        <div class="slider-container">
+            <div class="slider-track">
+                <div class="pale-overlay" id="lowerOverlay"></div>
+                <div class="pale-overlay" id="upperOverlay"></div>
+                <div class="slider-handle" id="lowerHandle"></div>
+                <div class="slider-handle" id="upperHandle"></div>
+            </div>
+            <div class="bounds">
+                <span id="lowerBoundValue">25</span>
+                <span id="upperBoundValue">75</span>
+            </div>
         </div>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/three@0.138.0/examples/js/loaders/PLYLoader.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/three@0.138.0/examples/js/controls/OrbitControls.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.19"></script>
         <script type="module" src="./main.js"></script>
     </body>
 </html>

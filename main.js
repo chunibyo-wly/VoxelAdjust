@@ -1,3 +1,72 @@
+const sliderTrack = document.querySelector('.slider-track');
+const lowerHandle = document.getElementById('lowerHandle');
+const upperHandle = document.getElementById('upperHandle');
+const lowerBoundValue = document.getElementById('lowerBoundValue');
+const upperBoundValue = document.getElementById('upperBoundValue');
+const lowerOverlay = document.getElementById('lowerOverlay');
+const upperOverlay = document.getElementById('upperOverlay');
+
+let isDragging = null;
+
+function setHandlePosition(handle, value) {
+    handle.style.left = `${value}%`;
+}
+
+function updateOverlays() {
+    const lowerValue = parseInt(lowerHandle.style.left);
+    const upperValue = parseInt(upperHandle.style.left);
+    lowerOverlay.style.width = `${lowerValue}%`;
+    upperOverlay.style.left = `${upperValue}%`;
+    upperOverlay.style.width = `${100 - upperValue}%`;
+}
+
+function updateValues() {
+    const lowerValue = parseInt(lowerHandle.style.left);
+    const upperValue = parseInt(upperHandle.style.left);
+    lowerBoundValue.textContent = lowerValue;
+    upperBoundValue.textContent = upperValue;
+    updateOverlays();
+}
+
+function handleMouseDown(e) {
+    isDragging = e.target;
+}
+
+function handleMouseUp() {
+    isDragging = null;
+}
+
+function handleMouseMove(e) {
+    if (!isDragging) return;
+
+    const rect = sliderTrack.getBoundingClientRect();
+    let value = ((e.clientX - rect.left) / rect.width) * 100;
+    value = Math.min(Math.max(value, 0), 100);
+
+    if (isDragging === lowerHandle) {
+        const upperValue = parseInt(upperHandle.style.left);
+        if (value < upperValue) {
+            setHandlePosition(lowerHandle, value);
+        }
+    } else if (isDragging === upperHandle) {
+        const lowerValue = parseInt(lowerHandle.style.left);
+        if (value > lowerValue) {
+            setHandlePosition(upperHandle, value);
+        }
+    }
+
+    updateValues();
+}
+
+setHandlePosition(lowerHandle, 0);
+setHandlePosition(upperHandle, 100);
+updateValues();
+
+lowerHandle.addEventListener('mousedown', handleMouseDown);
+upperHandle.addEventListener('mousedown', handleMouseDown);
+document.addEventListener('mouseup', handleMouseUp);
+
+
 // Scene setup
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
@@ -21,7 +90,7 @@ controls.screenSpacePanning = false;
 
 // Load the PLY file
 const loader = new THREE.PLYLoader();
-loader.load("./data/02_ground.ply", function (plyGeometry) {
+loader.load("./data/01_column.ply", function (plyGeometry) {
 
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute(
@@ -37,33 +106,34 @@ loader.load("./data/02_ground.ply", function (plyGeometry) {
     const material = new THREE.ShaderMaterial({
         transparent: true,
         uniforms: {
-            intensityThreshold: { value: 0.389 },
+            L: { value: 0 },
+            R: { value: 100 },
         },
         vertexShader:
             `
-                float rgbToIntensity(vec3 color) {
-                    float r = color.r;
-                    float g = color.g;
-                    float b = color.b;
-    
-                    if (b > g && b > r) {
-                        return mix(0.0, 0.333, (g - b) / 255.0 + 1.0);
-                    } else if (g > r) {
-                        return mix(0.333, 0.666, r / 255.0);
+                vec3 interpolateColor(float ratio, vec3 color1, vec3 color2) {
+                    return mix(color1, color2, ratio);
+                }
+
+                vec3 intensityToRGB(float intensity) {
+                    if (intensity <= 0.333) {
+                        return interpolateColor(intensity / 0.333, vec3(0.0, 0.0, 1.0), vec3(0.0, 1.0, 0.0)); // Blue -> Green
+                    } else if (intensity <= 0.666) {
+                        return interpolateColor((intensity - 0.333) / 0.333, vec3(0.0, 1.0, 0.0), vec3(1.0, 1.0, 0.0)); // Green -> Yellow
                     } else {
-                        return mix(0.666, 1.0, 1.0 - g / 255.0);
+                        return interpolateColor((intensity - 0.666) / 0.334, vec3(1.0, 1.0, 0.0), vec3(1.0, 0.0, 0.0)); // Yellow -> Red
                     }
                 }
-                uniform float intensityThreshold;
+
+                uniform float L;
+                uniform float R;
                 varying vec3 vColor;
-                varying float capacity;
                 
                 void main() {
-                    vColor = color;
-                    float intensity = rgbToIntensity(color.rgb);
-                    capacity = intensity;
+                    float intensity = color[0];
+                    vColor = intensityToRGB(intensity);
     
-                    if (intensity < intensityThreshold) {
+                    if (intensity < L - 1e-6 || intensity > R + 1e-6) {
                         gl_Position = vec4(0.0, 0.0, 1e10, 1.0);
                     } else {
                         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
@@ -75,7 +145,6 @@ loader.load("./data/02_ground.ply", function (plyGeometry) {
         fragmentShader:
             `
                 varying vec3 vColor;
-                varying float capacity;
                 
                 void main() {
                     gl_FragColor = vec4(vColor, 1.0);
@@ -84,13 +153,12 @@ loader.load("./data/02_ground.ply", function (plyGeometry) {
         vertexColors: true,
     });
 
-    // Slider functionality
-    const opacitySlider = document.getElementById('opacity-slider');
-
-    opacitySlider.addEventListener('input', function () {
-        const opacityValue = parseFloat(opacitySlider.value) / 1000;
-        material.uniforms.intensityThreshold.value = opacityValue;
-        material.needsUpdate = true; // Ensure the material updates
+    document.addEventListener('mousemove', (e) => {
+        handleMouseMove(e);
+        const lowerValue = parseInt(lowerHandle.style.left);
+        const upperValue = parseInt(upperHandle.style.left);
+        material.uniforms.L.value = lowerValue / 100;
+        material.uniforms.R.value = upperValue / 100;
     });
 
     geometry.computeVertexNormals();
