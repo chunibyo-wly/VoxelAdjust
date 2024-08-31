@@ -3,6 +3,7 @@ import { TrackballControls } from "three/addons/controls/TrackballControls.js";
 import Stats from "three/addons/libs/stats.module.js";
 import { PLYLoader } from "three/addons/loaders/PLYLoader.js";
 import { GUI } from "three/addons/libs/lil-gui.module.min.js";
+// import * as gsap from "gsap";
 
 const sliderTrack = document.querySelector(".slider-track");
 const lowerHandle = document.getElementById("lowerHandle");
@@ -88,14 +89,73 @@ document.body.appendChild(renderer.domElement);
 const controls = new TrackballControls(camera, renderer.domElement);
 controls.enableDamping = true; // Smooth orbiting
 controls.dampingFactor = 0.05;
-
 controls.rotateSpeed = 1.2;
 controls.zoomSpeed = 1.2;
 controls.panSpeed = 1.0;
-
 controls.target.set(0, 0, 0);
+
 // Load the PLY file
-const loader = new PLYLoader();
+// Loading manager setup
+const loadingManager = new THREE.LoadingManager();
+const loadingOverlay = document.createElement("div");
+
+loadingOverlay.style.position = "fixed";
+loadingOverlay.style.top = "0";
+loadingOverlay.style.left = "0";
+loadingOverlay.style.width = "100%";
+loadingOverlay.style.height = "100%";
+loadingOverlay.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
+loadingOverlay.style.display = "flex";
+loadingOverlay.style.flexDirection = "column";
+loadingOverlay.style.justifyContent = "center";
+loadingOverlay.style.alignItems = "center";
+loadingOverlay.style.zIndex = "1000";
+loadingOverlay.style.display = "none";
+
+// 3D loading animation setup
+const loadingScene = new THREE.Scene();
+const loadingCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+loadingCamera.position.z = 2;
+
+const loadingRenderer = new THREE.WebGLRenderer({ alpha: true });
+loadingRenderer.setSize(200, 200);
+loadingRenderer.setClearColor(0x000000, 0);
+
+const loadingGeometry = new THREE.IcosahedronGeometry(1, 0);
+const loadingMaterial = new THREE.MeshBasicMaterial({
+    wireframe: true,
+    color: 0xf3f3f3,
+});
+const loadingMesh = new THREE.Mesh(loadingGeometry, loadingMaterial);
+function animateLoading() {
+    requestAnimationFrame(animateLoading);
+    // loadingMesh.rotation.x += 0.01;
+    loadingMesh.rotation.y += 0.02;
+    loadingRenderer.render(loadingScene, loadingCamera);
+}
+
+loadingScene.add(loadingMesh);
+loadingOverlay.appendChild(loadingRenderer.domElement);
+document.body.appendChild(loadingOverlay);
+
+animateLoading();
+loadingManager.onStart = function (url, itemsLoaded, itemsTotal) {
+    loadingOverlay.style.display = "flex";
+    scene.clear();
+    folderArray.forEach((folder) => {
+        folder.destroy();
+    });
+};
+loadingManager.onProgress = function (url, itemsLoaded, itemsTotal) {};
+loadingManager.onLoad = function () {
+    loadingOverlay.style.display = "none";
+};
+loadingManager.onError = function (url) {
+    loadingOverlay.style.display = "none";
+};
+
+const loader = new PLYLoader(loadingManager);
+
 const gui = new GUI();
 const selectedName = { name: "Select File" };
 gui.add(selectedName, "name", ["01_column", "02_ground"])
@@ -106,12 +166,6 @@ let folderArray = [];
 
 function load(name) {
     loader.load(`./data/${name}.ply`, function (plyGeometry) {
-        scene.clear();
-        folderArray.forEach((folder) => {
-            // gui.removeFolder(folder);
-            folder.destroy();
-        });
-
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute(
             "position",
