@@ -241,7 +241,7 @@ function load(name) {
                             gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
                         }
     
-                        gl_PointSize = 4.0;
+                        gl_PointSize = 10.0;
                     }
                 `,
             fragmentShader: `
@@ -294,9 +294,16 @@ function load(name) {
         const pointCloud = new THREE.Points(geometry, material);
         scene.add(pointCloud);
 
-        const light = new THREE.HemisphereLight(0xffffff, 0x080808, 4.5);
-        light.position.set(-1.25, 1, 1.25);
-        scene.add(light);
+        // Create an ambient light
+        const ambientLight = new THREE.AmbientLight(0xffffff, 10000);
+        scene.add(ambientLight);
+        // Create a hemispheric light
+        const hemisphereLight = new THREE.HemisphereLight(
+            0xffffff,
+            0x444444,
+            10000
+        );
+        scene.add(hemisphereLight);
 
         // Compute the bounding box of the point cloud
         const boundingBox = new THREE.Box3().setFromObject(pointCloud);
@@ -334,6 +341,12 @@ function load(name) {
             );
 
             const planeFolder = gui.addFolder(`plane${planeNames[index]}`);
+            planeFolder.domElement
+                .querySelector(".title")
+                .style.setProperty(
+                    "color",
+                    `#${planeHelpers[index].material.color.getHexString()}`
+                );
             planeFolder
                 .add(planeHelpers[index], "visible")
                 .name("displayHelper");
