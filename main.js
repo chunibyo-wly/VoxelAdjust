@@ -72,6 +72,14 @@ updateValues();
 lowerHandle.addEventListener("mousedown", handleMouseDown);
 upperHandle.addEventListener("mousedown", handleMouseDown);
 document.addEventListener("mouseup", handleMouseUp);
+// Touch events for mobile support
+lowerHandle.addEventListener("touchstart", (e) => {
+    handleMouseDown(e.touches[0]);
+});
+upperHandle.addEventListener("touchstart", (e) => {
+    handleMouseDown(e.touches[0]);
+});
+document.addEventListener("touchend", handleMouseUp);
 
 // Scene setup
 const scene = new THREE.Scene();
@@ -265,6 +273,14 @@ function load(name) {
 
         document.addEventListener("mousemove", (e) => {
             handleMouseMove(e);
+            const lowerValue = parseInt(lowerHandle.style.left);
+            const upperValue = parseInt(upperHandle.style.left);
+            material.uniforms.L.value = lowerValue / 100;
+            material.uniforms.R.value = upperValue / 100;
+        });
+
+        document.addEventListener("touchmove", (e) => {
+            handleMouseMove(e.touches[0]);
             const lowerValue = parseInt(lowerHandle.style.left);
             const upperValue = parseInt(upperHandle.style.left);
             material.uniforms.L.value = lowerValue / 100;
