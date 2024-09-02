@@ -57,10 +57,11 @@ def process_csv_to_ply(csv_filename, ply_filename):
     pcd.points = o3d.utility.Vector3dVector(points)
     pcd.colors = o3d.utility.Vector3dVector(intensities)
     o3d.io.write_point_cloud(
-        ply_filename, pcd.voxel_down_sample(voxel_size=0.005), write_ascii=False
+        ply_filename, pcd.voxel_down_sample(voxel_size=0.006), write_ascii=False
     )
 
 
 # Example usage:
 process_csv_to_ply("data/01_column.csv", "data/01_column.ply")
 process_csv_to_ply("data/02_ground.csv", "data/02_ground.ply")
+process_csv_to_ply("data/03_ground.csv", "data/03_ground.ply")

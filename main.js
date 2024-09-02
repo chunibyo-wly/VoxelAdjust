@@ -166,7 +166,7 @@ const loader = new PLYLoader(loadingManager);
 
 const gui = new GUI();
 const selectedName = { name: "Select File" };
-gui.add(selectedName, "name", ["01_column", "02_ground"])
+gui.add(selectedName, "name", ["01_column", "02_ground", "03_ground"])
     .name("GPR Example")
     .onChange((value) => load(value));
 
