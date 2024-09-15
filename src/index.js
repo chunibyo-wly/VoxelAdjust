@@ -3,7 +3,7 @@ import { TrackballControls } from "three/examples/jsm/controls/TrackballControls
 import Stats from "three/examples/jsm/libs/stats.module.js";
 import { PLYLoader } from "three/examples/jsm/loaders/PLYLoader.js";
 import { GUI } from "three/examples/jsm/libs/lil-gui.module.min.js";
-import * as THREEx from '@ar-js-org/ar.js/three.js/build/ar-threex.js';
+import * as THREEx from "@ar-js-org/ar.js/three.js/build/ar-threex.js";
 
 const sliderTrack = document.querySelector(".slider-track");
 const lowerHandle = document.getElementById("lowerHandle");
@@ -81,64 +81,29 @@ upperHandle.addEventListener("touchstart", (e) => {
 });
 document.addEventListener("touchend", handleMouseUp);
 
-// AR
-const initAR = () => {
-    // Initialize the source (camera)
-    var arToolkitSource = new THREEx.ArToolkitSource({
-        sourceType: "webcam",
-    });
-
-    // // Handle resizing
-    // arToolkitSource.init(function onReady() {
-    //     onResize();
-    // });
-    // window.addEventListener("resize", function () {
-    //     onResize();
-    // });
-    // function onResize() {
-    //     arToolkitSource.onResize();
-    //     arToolkitSource.copySizeTo(renderer.domElement);
-    // }
-
-    // // Create atToolkitContext
-    // var arToolkitContext = new ArToolkitContext({
-    //     cameraParametersUrl:
-    //         "https://raw.githubusercontent.com/AR-js-org/AR.js/master/three.js/data/camera_para.dat",
-    //     detectionMode: "mono",
-    // });
-
-    // // Initialize it
-    // arToolkitContext.init(function onCompleted() {
-    //     // Copy projection matrix to camera
-    //     camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
-    // });
-};
-initAR();
-// AR
-
 // Scene setup
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(
-    75,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    1000
-);
+let scene, camera, controls;
+let arToolkitSource, arToolkitContext, markerRoot;
+scene = new THREE.Scene();
+markerRoot = new THREE.Group();
+camera = new THREE.Camera();
 
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+// GUI setup
+const gui = new GUI();
+const guiHelper = { mode: "Visualize mode", name: "Select File" };
+let guiMode = gui.add(guiHelper, "mode", ["Normal", "AR"]).onChange((value) => {
+    if (value === "Normal") {
+        switchMode(false);
+    } else {
+        switchMode(true);
+    }
+});
+gui.add(guiHelper, "name", ["01_column", "02_ground", "03_ground"])
+    .name("GPR Example")
+    .onChange((value) => load(value));
+let folderArray = [];
+// GUI setup
 
-const controls = new TrackballControls(camera, renderer.domElement);
-controls.enableDamping = true; // Smooth orbiting
-controls.dampingFactor = 0.05;
-controls.rotateSpeed = 1.2;
-controls.zoomSpeed = 1.2;
-controls.panSpeed = 1.0;
-controls.target.set(0, 0, 0);
-
-// Load the PLY file
-// Loading manager setup
 const loadingManager = new THREE.LoadingManager();
 const loadingOverlay = document.createElement("div");
 
@@ -172,7 +137,6 @@ const loadingMaterial = new THREE.MeshBasicMaterial({
 const loadingMesh = new THREE.Mesh(loadingGeometry, loadingMaterial);
 function animateLoading() {
     requestAnimationFrame(animateLoading);
-    // loadingMesh.rotation.x += 0.01;
     loadingMesh.rotation.y += 0.02;
     loadingRenderer.render(loadingScene, loadingCamera);
 }
@@ -199,13 +163,12 @@ loadingManager.onError = function (url) {
 
 const loader = new PLYLoader(loadingManager);
 
-const gui = new GUI();
-const selectedName = { name: "Select File" };
-gui.add(selectedName, "name", ["01_column", "02_ground", "03_ground"])
-    .name("GPR Example")
-    .onChange((value) => load(value));
-
-let folderArray = [];
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.domElement.style.position = "absolute";
+renderer.domElement.style.top = "0px";
+renderer.domElement.style.left = "0px";
+document.body.appendChild(renderer.domElement);
 
 function load(name) {
     loader.load(`./data/${name}.ply`, function (plyGeometry) {
@@ -340,72 +303,201 @@ function load(name) {
         );
         scene.add(hemisphereLight);
 
-        // Compute the bounding box of the point cloud
-        const boundingBox = new THREE.Box3().setFromObject(pointCloud);
-        boundingBox.getCenter(camera.position);
+        geometry.computeBoundingBox();
+        if (isAR) {
+            scene.add(markerRoot);
+            markerRoot.add(pointCloud);
+            geometry.computeBoundingBox();
 
-        // Adjust the camera position
-        const size = boundingBox.getSize(new THREE.Vector3());
-        const maxDim = Math.max(size.x, size.y, size.z);
-        const fov = camera.fov * (Math.PI / 180);
-        let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
-        camera.position.set(
-            camera.position.x,
-            camera.position.y,
-            cameraZ * 1.5
-        );
-        // Make the camera look at the center of the point cloud
-        camera.lookAt(boundingBox.getCenter(new THREE.Vector3()));
+            // Get the bounding box
+            const boundingBox = geometry.boundingBox;
 
-        // GUI setup
-        const planeNames = ["X", "Y", "Z"];
-        const planeHelpers = [
-            new THREE.PlaneHelper(new THREE.Plane(), 1.3, 0xff0000),
-            new THREE.PlaneHelper(new THREE.Plane(), 1.3, 0x00ff00),
-            new THREE.PlaneHelper(new THREE.Plane(), 1.3, 0x0000ff),
-        ];
-        planeHelpers.forEach((planeHelper) => {
-            scene.add(planeHelper);
-            planeHelper.visible = true;
-        });
-        planes.forEach((plane, index) => {
-            plane.w = boundingBox.max[planeNames[index].toLowerCase()] + 1e-6;
-            planeHelpers[index].plane = new THREE.Plane(
-                new THREE.Vector3().fromArray(plane.toArray()),
-                -plane.w
+            // Calculate the center of the bounding box
+            const center = new THREE.Vector3();
+            boundingBox.getCenter(center);
+
+            // Create a translation matrix to move the geometry to the origin
+            const translationMatrix = new THREE.Matrix4().makeTranslation(
+                -center.x,
+                -center.y,
+                -center.z
             );
 
-            const planeFolder = gui.addFolder(`plane${planeNames[index]}`);
-            planeFolder.domElement
-                .querySelector(".title")
-                .style.setProperty(
-                    "color",
-                    `#${planeHelpers[index].material.color.getHexString()}`
-                );
-            planeFolder
-                .add(planeHelpers[index], "visible")
-                .name("displayHelper");
-            planeFolder
-                .add(plane, "w")
-                .name("position")
-                .min(boundingBox.min[planeNames[index].toLowerCase()] - 1e-6)
-                .max(boundingBox.max[planeNames[index].toLowerCase()] + 1e-6)
-                .onChange((value) => {
-                    plane.w = value;
-                    planeHelpers[index].plane = new THREE.Plane(
-                        new THREE.Vector3().fromArray(plane.toArray()),
-                        -value
-                    );
-                });
-            planeFolder.add({ mirror: false }, "mirror").onChange((value) => {
-                dir[planeNames[index].toLowerCase()] =
-                    -dir[planeNames[index].toLowerCase()];
+            // Apply the translation to the geometry
+            geometry.applyMatrix4(translationMatrix);
+
+            // Calculate the maximum dimension of the bounding box
+            const maxDimension = Math.max(
+                boundingBox.max.x - boundingBox.min.x,
+                boundingBox.max.y - boundingBox.min.y,
+                boundingBox.max.z - boundingBox.min.z
+            );
+
+            // Calculate the scale factor to fit the geometry within a 1x1x1 cube
+            const scaleFactor = 4 / maxDimension;
+
+            // Create a scale matrix
+            const scaleMatrix = new THREE.Matrix4().makeScale(
+                scaleFactor,
+                scaleFactor,
+                scaleFactor
+            );
+
+            // Apply the scale to the geometry
+            geometry.applyMatrix4(scaleMatrix);
+
+            // Update the geometry's attributes
+            geometry.computeBoundingBox();
+            geometry.computeBoundingSphere();
+        } else {
+            // Compute the bounding box of the point cloud
+            const boundingBox = new THREE.Box3().setFromObject(pointCloud);
+            boundingBox.getCenter(camera.position);
+
+            // Adjust the camera position
+            const size = boundingBox.getSize(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const fov = camera.fov * (Math.PI / 180);
+            let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
+            camera.position.set(
+                camera.position.x,
+                camera.position.y,
+                cameraZ * 1.5
+            );
+            // Make the camera look at the center of the point cloud
+            camera.lookAt(boundingBox.getCenter(new THREE.Vector3()));
+
+            // GUI setup
+            const planeNames = ["X", "Y", "Z"];
+            const planeHelpers = [
+                new THREE.PlaneHelper(new THREE.Plane(), 1.3, 0xff0000),
+                new THREE.PlaneHelper(new THREE.Plane(), 1.3, 0x00ff00),
+                new THREE.PlaneHelper(new THREE.Plane(), 1.3, 0x0000ff),
+            ];
+            planeHelpers.forEach((planeHelper) => {
+                scene.add(planeHelper);
+                planeHelper.visible = true;
             });
-            planeFolder.open();
-            folderArray.push(planeFolder);
-        });
+
+            planes.forEach((plane, index) => {
+                plane.w =
+                    boundingBox.max[planeNames[index].toLowerCase()] + 1e-6;
+                planeHelpers[index].plane = new THREE.Plane(
+                    new THREE.Vector3().fromArray(plane.toArray()),
+                    -plane.w
+                );
+
+                const planeFolder = gui.addFolder(`plane${planeNames[index]}`);
+                planeFolder.domElement
+                    .querySelector(".title")
+                    .style.setProperty(
+                        "color",
+                        `#${planeHelpers[index].material.color.getHexString()}`
+                    );
+                planeFolder
+                    .add(planeHelpers[index], "visible")
+                    .name("displayHelper");
+                planeFolder
+                    .add(plane, "w")
+                    .name("position")
+                    .min(
+                        boundingBox.min[planeNames[index].toLowerCase()] - 1e-6
+                    )
+                    .max(
+                        boundingBox.max[planeNames[index].toLowerCase()] + 1e-6
+                    )
+                    .onChange((value) => {
+                        plane.w = value;
+                        planeHelpers[index].plane = new THREE.Plane(
+                            new THREE.Vector3().fromArray(plane.toArray()),
+                            -value
+                        );
+                    });
+                planeFolder
+                    .add({ mirror: false }, "mirror")
+                    .onChange((value) => {
+                        dir[planeNames[index].toLowerCase()] =
+                            -dir[planeNames[index].toLowerCase()];
+                    });
+                planeFolder.open();
+                folderArray.push(planeFolder);
+            });
+        }
     });
 }
+
+let isAR = false;
+
+function swithchToNormal() {
+    renderer.setClearColor(new THREE.Color("black"), 1);
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+    );
+
+    controls = new TrackballControls(camera, renderer.domElement);
+    controls.enableDamping = true; // Smooth orbiting
+    controls.dampingFactor = 0.05;
+    controls.rotateSpeed = 1.2;
+    controls.zoomSpeed = 1.2;
+    controls.panSpeed = 1.0;
+    controls.target.set(0, 0, 0);
+}
+
+function switchToAR() {
+    scene = new THREE.Scene();
+    camera = new THREE.Camera();
+    scene.add(camera);
+    arToolkitSource = new THREEx.ArToolkitSource({
+        sourceType: "webcam",
+    });
+
+    // Handle resizing
+    arToolkitSource.init(function onReady() {
+        arToolkitSource.onResizeElement();
+        arToolkitSource.copyElementSizeTo(renderer.domElement);
+        if (arToolkitContext.arController !== null) {
+            arToolkitSource.copyElementSizeTo(
+                arToolkitContext.arController.canvas
+            );
+        }
+    });
+
+    // Create atToolkitContext
+    arToolkitContext = new THREEx.ArToolkitContext({
+        cameraParametersUrl: "./data/camera_para.dat",
+        detectionMode: "mono",
+    });
+
+    // Initialize it
+    arToolkitContext.init(function onCompleted() {
+        camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
+    });
+
+    // Create a marker group
+    markerRoot = new THREE.Group();
+    scene.add(markerRoot);
+
+    // Create marker controls
+    controls = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
+        type: "pattern",
+        patternUrl: "./data/patt.hiro",
+    });
+}
+
+function switchMode(mode) {
+    isAR = mode;
+    if (isAR) {
+        switchToAR();
+    } else {
+        swithchToNormal();
+    }
+}
+// swithchToNormal();
+guiMode.setValue("Normal");
 
 // stats setup
 let stats = new Stats();
@@ -414,7 +506,12 @@ document.body.appendChild(stats.dom);
 // Render loop
 function animate() {
     requestAnimationFrame(animate);
-    controls.update();
+    if (!isAR) controls.update();
+    else if (isAR && arToolkitSource && arToolkitSource.ready !== false) {
+        arToolkitContext.update(arToolkitSource.domElement);
+        arToolkitSource.onResizeElement();
+        arToolkitSource.copyElementSizeTo(renderer.domElement);
+    }
     stats.begin();
     renderer.render(scene, camera);
     stats.end();
@@ -422,7 +519,18 @@ function animate() {
 animate();
 // Handle window resize
 window.addEventListener("resize", () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    if (!isAR) {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    if (isAR && arToolkitSource) {
+        arToolkitSource.onResizeElement();
+        arToolkitSource.copyElementSizeTo(renderer.domElement);
+        if (arToolkitContext.arController !== null) {
+            arToolkitSource.copyElementSizeTo(
+                arToolkitContext.arController.canvas
+            );
+        }
+    }
 });

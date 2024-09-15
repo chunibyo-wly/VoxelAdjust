@@ -1,4 +1,5 @@
 const path = require("path");
+const TerserPlugin = require("terser-webpack-plugin");
 
 module.exports = {
     entry: "./src/index.js", // Entry point for your app
@@ -20,5 +21,12 @@ module.exports = {
     resolve: {
         modules: [path.resolve(__dirname, "src"), "node_modules"], // Resolves module paths
     },
-    mode: "development", // You can change this to 'production' for optimized builds
+    mode: "development", // You can change this to 'production' for optimized builds,
+    optimization: {
+        minimize: true,
+        minimizer: [new TerserPlugin()],
+    },
+    devServer: {
+        server: "https",
+    },
 };
