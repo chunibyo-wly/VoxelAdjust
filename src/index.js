@@ -91,14 +91,17 @@ camera = new THREE.Camera();
 // GUI setup
 const gui = new GUI();
 const guiHelper = { mode: "Visualize mode", name: "Select File" };
-let guiMode = gui.add(guiHelper, "mode", ["Normal", "AR"]).onChange((value) => {
-    if (value === "Normal") {
-        switchMode(false);
-    } else {
-        switchMode(true);
-    }
-});
-gui.add(guiHelper, "name", ["01_column", "02_ground", "03_ground"])
+const guiMode = gui
+    .add(guiHelper, "mode", ["Normal", "AR"])
+    .onChange((value) => {
+        if (value === "Normal") {
+            switchMode(false);
+        } else {
+            switchMode(true);
+        }
+    });
+const guiItem = gui
+    .add(guiHelper, "name", ["01_column", "02_ground", "03_ground"])
     .name("GPR Example")
     .onChange((value) => load(value));
 let folderArray = [];
@@ -149,6 +152,7 @@ animateLoading();
 loadingManager.onStart = function (url, itemsLoaded, itemsTotal) {
     loadingOverlay.style.display = "flex";
     scene.clear();
+    markerRoot.clear();
     folderArray.forEach((folder) => {
         folder.destroy();
     });
@@ -163,12 +167,12 @@ loadingManager.onError = function (url) {
 
 const loader = new PLYLoader(loadingManager);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+let renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.domElement.style.position = "absolute";
 renderer.domElement.style.top = "0px";
 renderer.domElement.style.left = "0px";
-document.body.appendChild(renderer.domElement);
+// document.body.appendChild(renderer.domElement);
 
 function load(name) {
     loader.load(`./data/${name}.ply`, function (plyGeometry) {
@@ -334,7 +338,7 @@ function load(name) {
             );
 
             // Calculate the scale factor to fit the geometry within a 1x1x1 cube
-            const scaleFactor = 4 / maxDimension;
+            const scaleFactor = 10 / maxDimension;
 
             // Create a scale matrix
             const scaleMatrix = new THREE.Matrix4().makeScale(
@@ -490,13 +494,27 @@ function switchToAR() {
 
 function switchMode(mode) {
     isAR = mode;
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.domElement.style.position = "absolute";
+    renderer.domElement.style.top = "0px";
+    renderer.domElement.style.left = "0px";
+    document.getElementById("threed-container").innerHTML = "";
+    document
+        .getElementById("threed-container")
+        .appendChild(renderer.domElement);
     if (isAR) {
         switchToAR();
     } else {
+        arToolkitSource = null;
+        arToolkitContext = null;
         swithchToNormal();
     }
+    if (guiItem.getValue() !== "Select File") {
+        load(guiItem.getValue());
+    }
 }
-// swithchToNormal();
+
 guiMode.setValue("Normal");
 
 // stats setup
