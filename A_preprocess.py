@@ -1,5 +1,5 @@
 import csv
-from flask.cli import F
+#from flask.cli import F
 import numpy as np
 import open3d as o3d
 from tqdm import tqdm
@@ -12,7 +12,6 @@ def interpolate_color(value, low, high, color1, color2):
     g = int(color1[1] + ratio * (color2[1] - color1[1]))
     b = int(color1[2] + ratio * (color2[2] - color1[2]))
     return r, g, b
-
 
 def intensity_to_rgb(intensity):
     """Map normalized intensity to an RGB color based on the gradient."""
@@ -42,26 +41,34 @@ def process_csv_to_ply(csv_filename, ply_filename):
             points.append((x, y, z))
             intensities.append(intensity)
 
-    # Normalize intensity values to the range [0, 1]
-    min_intensity = min(intensities)
-    max_intensity = max(intensities)
-
     points = np.array(points)
-    intensities = (
-        ((np.array(intensities) - min_intensity) / (max_intensity - min_intensity))
+
+    # Deal with values equaling 0
+    intensities = np.array(intensities) + 1e-10
+
+    # Apply log_transformed
+    log_transformed = np.log(intensities)
+
+    # Normalize intensity values to the range [0, 1]
+    min_intensity = min(log_transformed)
+    max_intensity = max(log_transformed)
+    log_transformed = (
+        ((np.array(log_transformed) - min_intensity) / (max_intensity - min_intensity))
         .reshape(-1, 1)
         .repeat(3, axis=1)
     )
-
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(points)
-    pcd.colors = o3d.utility.Vector3dVector(intensities)
+    pcd.colors = o3d.utility.Vector3dVector(log_transformed)
     o3d.io.write_point_cloud(
         ply_filename, pcd.voxel_down_sample(voxel_size=0.006), write_ascii=False
     )
 
 
 # Example usage:
+'''
 process_csv_to_ply("data/01_column.csv", "data/01_column.ply")
 process_csv_to_ply("data/02_ground.csv", "data/02_ground.ply")
 process_csv_to_ply("data/03_ground.csv", "data/03_ground.ply")
+'''
+process_csv_to_ply("public/data/04_groundKB526.csv", "public/data/04_groundKB526.ply")
