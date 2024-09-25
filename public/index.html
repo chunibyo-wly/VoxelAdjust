@@ -56,6 +56,29 @@
                 background-color: rgba(255, 255, 255, 0.7);
                 z-index: 100;
             }
+
+            /* Styling for the #info div and its contents */
+            #info {
+                position: absolute;
+                top: 20px; /* Adjust this value to control the distance from the top */
+                left: 50%;
+                transform: translateX(
+                    -50%
+                ); /* Center the content horizontally */
+                text-align: center;
+                color: white; /* Default text color inside the #info */
+                z-index: 100; /* Make sure the #info is always on top */
+                font-family: Monospace;
+            }
+
+            #info a {
+                color: green; /* Link text color */
+                text-decoration: none; /* Remove underline from the link */
+            }
+
+            #info a:hover {
+                text-decoration: underline; /* Add underline on hover */
+            }
         </style>
         <style>
             .github-corner:hover .octo-arm {
@@ -87,6 +110,16 @@
         </style>
     </head>
     <body style="margin: 0px; overflow: hidden">
+        <div id="info">
+            <a
+                href="https://ilab.hku.hk/"
+                target="_blank"
+                rel="noopener noreferrer"
+                >iLab</a
+            >
+            AR-GPR See-through App (HKU TDG/KE)
+        </div>
+
         <a
             href="https://github.com/chunibyo-wly/VoxelAdjust"
             class="github-corner"
