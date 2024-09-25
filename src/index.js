@@ -519,7 +519,7 @@ guiMode.setValue("Normal");
 
 // stats setup
 let stats = new Stats();
-document.body.appendChild(stats.dom);
+// document.body.appendChild(stats.dom);
 
 // Render loop
 function animate() {

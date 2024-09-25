@@ -60,15 +60,14 @@
             /* Styling for the #info div and its contents */
             #info {
                 position: absolute;
-                top: 20px; /* Adjust this value to control the distance from the top */
-                left: 50%;
-                transform: translateX(
-                    -50%
-                ); /* Center the content horizontally */
-                text-align: center;
+                top: 10px; /* Adjust this value to control the distance from the top */
+                left: 0%;
+
+                text-align: left;
                 color: white; /* Default text color inside the #info */
                 z-index: 100; /* Make sure the #info is always on top */
                 font-family: Monospace;
+                line-height: 1.6;
             }
 
             #info a {
@@ -78,6 +77,29 @@
 
             #info a:hover {
                 text-decoration: underline; /* Add underline on hover */
+            }
+
+            /* Media query for screens less than or equal to 768px (tablets, mobile devices) */
+            @media (max-width: 768px) {
+                #info {
+                    left: 0; /* Align to the left */
+                    width: 25vw; /* Set width to 40% of the viewport width */
+                    max-width: 100%; /* Ensure it doesn't overflow */
+                    top: 10px; /* Keep the top margin consistent */
+                    line-height: 1.6;
+                }
+            }
+
+            /* Media query for screens less than or equal to 480px (small mobile devices) */
+            @media (max-width: 480px) {
+                #info {
+                    left: 0; /* Align to the left */
+                    width: 25vw; /* 40% of the viewport width */
+                    max-width: 100%; /* Make sure it doesn't overflow */
+                    top: 10px; /* Maintain the top margin */
+                    font-size: 14px; /* Adjust font size for better readability */
+                    line-height: 1.6;
+                }
             }
         </style>
         <style>
