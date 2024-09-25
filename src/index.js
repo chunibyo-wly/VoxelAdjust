@@ -101,7 +101,7 @@ const guiMode = gui
         }
     });
 const guiItem = gui
-    .add(guiHelper, "name", ["01_column", "02_ground", "03_ground"])
+    .add(guiHelper, "name", ["01_column", "02_ground", "03_ground", "04_groundKB526"])
     .name("GPR Example")
     .onChange((value) => load(value));
 let folderArray = [];
